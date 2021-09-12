@@ -23,8 +23,6 @@ static void PeriDisp(AGSIMENU *pM);
 
 CngsledsDlg *pCPeriDialog = NULL;
 
-BYTE initflag = 0;
-
 AGSIDLGD PeriDlg = { 0,NULL,NULL, {-1,-1,-1,-1}, PeriUpdate, PeriKill };
 AGSIMENU PeriMenu = { 1,"&NGS_LEDS", PeriDisp, 0, IDD_NGSLEDS_DIALOG, &PeriDlg };
 
@@ -193,20 +191,20 @@ void CngsledsDlg::OnClose()
 	//CDialog::OnClose();
 }
 
-void CngsledsDlg::WatchSFR()		// Az AGSI watchok ezt a függvényt hívják meg minden változásnál, ez a "main" része igazából a kódnak ahova maga a mûködés kerül
+void CngsledsDlg::WatchSFR()		
 {
 	
-	for (char x = 0; x <= 4; x++) {		// AGSIwatch meghívta a függvényt, elõször fel kell olvasni hogy mi is a változás
+	for (char x = 0; x <= 4; x++) {		
 		DWORD currPortTemp, lastPortTemp;
 		if (Filekez::portExt[x] != 0) {
-			Agsi.ReadSFR(Filekez::sfraddress[x], &currPortTemp, &lastPortTemp, PortMask[x]);  // inicializálásnál létrehozott portmask alapján az ideiglenes currPortTemp és lastPortTemp változókba olvas be
-			currPort[x] = currPortTemp;		// a DWORD típusu ideiglenes változóból átadjuk a bitset<8> típusú currPort változónak, tehát a port "bájtok" lesznek feltöltve
+			Agsi.ReadSFR(Filekez::sfraddress[x], &currPortTemp, &lastPortTemp, PortMask[x]);  
+			currPort[x] = currPortTemp;		
 			lastPort[x] = lastPortTemp;
 		}
 	}
 
-	if (currPort != lastPort) {		// a Ledmátrixtól eltérõen nincsenek speciális vezérlõ bitek, sima változást figyelünk
-		for (char n = 0; n < 8; n++) {		// 0-7ig vannak a ledek bitjei, a gombokról nem olvasunk vissza státuszt
+	if (currPort != lastPort) {		
+		for (char n = 0; n < 8; n++) {		
 			if (currPort[Filekez::portArrayExt[n]][Filekez::bitArrayExt[n]] /*&& !lastPort[Filekez::portArrayExt[n]][Filekez::bitArrayExt[n]]*/) {
 				storeLed[n] = 1;
 			}
@@ -222,13 +220,13 @@ void CngsledsDlg::DrawLed()
 {
 	//auto now = std::chrono::steady_clock::now();
 	//std::chrono::duration<double> diff = now - timeStart;
-	auto now = std::chrono::high_resolution_clock::now();		// az inicializáláskor indítva lett egy timer "timeStart", valamit minden kirajzolás után "újraindul" ez a timer "timeStart = now"
+	auto now = std::chrono::high_resolution_clock::now();		
 	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - timeStart).count();
 	
 	//if (diff.count() > 0.010) {
-	if (duration >= 17) { // ~17ms a 60Hz-re nem túl pontosan kikalkulálva, sok jelentõsége nincs a pontosságnak, lényeg hogy 17ms-en belül ne legyen több újrarajzolás
-		timeStart = now;	//mivel ide belépve lesz képernyõ rajzolás, a timer idejét egyenlõvé tesszük a jelenlegivel, innentõl számítja a következõ 17ms elteltét
-		for (char n = 0; n < 8; n++) {	// mivel nincs rajzolás minden változás után, így az eltárolt 1-esbe állított ledeket rajzoljuk itt ki
+	if (duration >= 17) { 
+		timeStart = now;	
+		for (char n = 0; n < 8; n++) {	
 			if (storeLed[n]) {
 				Ledsor[n].SetLed(CLed::LED_OFF);		
 			}
@@ -238,9 +236,9 @@ void CngsledsDlg::DrawLed()
 			}
 		}
 	}
-	else {		// szükség van egy másik fajta timerre is, ennek lejártakor automatikusan hívódik az OnTimer function -- ha a Keilben leáll a kód és a kirajzolás után a 17ms-en belül történt még változás
-		if (endTimerReset)		// azt is meg kell jeleníteni valahogy, mivel nincs CLK bit, ha 50ms-ig nem történik DrawLed hívás mert pl leállt a kód, akkor meghívódik még utoljára
-		{						// ha egyszer belép az else ágba, akkor minden belépéskor reseteli a timert, nyilván ha 50ms alatt nem jött reset akkor hívódik az OnTimer fuction
+	else {		
+		if (endTimerReset)		
+		{						
 			KillTimer(2);
 		}
 		endTimerReset = true;
@@ -277,104 +275,52 @@ void CngsledsDlg::OnTimer(UINT nIDEvent)		// ez hívódik meg 50ms után, ha nem tö
 
 void CngsledsDlg::OnBnClickedCheck1()		//a bit/portArrayExternal 8-15ig vannak a gombok "bitjei" eltárolva
 {
-	//buttons[0] = ((CButton*)GetDlgItem(IDC_CHECK1))->GetCheck();
-	btnTemp.set(Filekez::bitArrayExt[8]);		// ha az elsõ gombról tudjuk hogy pl 7. bitre lett configolva, akkor ez egy ideiglenes 8bites változó 7. bitjét beseteli, egy átalakítás történik lényegében
-	if (((CButton*)GetDlgItem(IDC_CHECK8))->GetCheck()) {		//gomb állapot vizsgálata
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[8]], 0, btnTemp.to_ulong());	//az elsõ gombhoz tartozó port 0-4ig megadja, ez alapján lesz kiválasztva melyik porthoz tartozó SFR értékre írjon 0-t
-	}
-	else {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[8]], btnTemp.to_ulong(), btnTemp.to_ulong());	// a to_ulong egy sima castolás, bitsetet csak úgy nem lehet kiküldeni
-	}
-	btnTemp.reset(Filekez::bitArrayExt[8]);	// az elõbb besetelt bitet vissza teszi 0-ba
+	HandleButton(8, IDC_CHECK8);
 }
 
 void CngsledsDlg::OnBnClickedCheck2()
 {
-	//buttons[1] = ((CButton*)GetDlgItem(IDC_CHECK2))->GetCheck();
-	btnTemp.set(Filekez::bitArrayExt[9]);
-	if (((CButton*)GetDlgItem(IDC_CHECK7))->GetCheck()) {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[9]], 0, btnTemp.to_ulong());
-	}
-	else {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[9]], btnTemp.to_ulong(), btnTemp.to_ulong());
-	}
-	btnTemp.reset(Filekez::bitArrayExt[9]);
+	HandleButton(9, IDC_CHECK7);
 }
 
 void CngsledsDlg::OnBnClickedCheck3()
 {
-	//buttons[2] = ((CButton*)GetDlgItem(IDC_CHECK1))->GetCheck();
-	btnTemp.set(Filekez::bitArrayExt[10]);
-	if (((CButton*)GetDlgItem(IDC_CHECK6))->GetCheck()) {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[10]], 0, btnTemp.to_ulong());
-	}
-	else {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[10]], btnTemp.to_ulong(), btnTemp.to_ulong());
-	}
-	btnTemp.reset(Filekez::bitArrayExt[10]);
+	HandleButton(10, IDC_CHECK6);
 }
 
 void CngsledsDlg::OnBnClickedCheck4()
 {
-	//buttons[3] = ((CButton*)GetDlgItem(IDC_CHECK1))->GetCheck();
-	btnTemp.set(Filekez::bitArrayExt[11]);
-	if (((CButton*)GetDlgItem(IDC_CHECK5))->GetCheck()) {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[11]], 0, btnTemp.to_ulong());
-	}
-	else {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[11]], btnTemp.to_ulong(), btnTemp.to_ulong());
-	}
-	btnTemp.reset(Filekez::bitArrayExt[11]);
+	HandleButton(11, IDC_CHECK5);
 }
 
 void CngsledsDlg::OnBnClickedCheck5()
 {
-	//buttons[4] = ((CButton*)GetDlgItem(IDC_CHECK1))->GetCheck();
-	btnTemp.set(Filekez::bitArrayExt[12]);
-	if (((CButton*)GetDlgItem(IDC_CHECK4))->GetCheck()) {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[12]], 0, btnTemp.to_ulong());
-	}
-	else {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[12]], btnTemp.to_ulong(), btnTemp.to_ulong());
-	}
-	btnTemp.reset(Filekez::bitArrayExt[12]);
+	HandleButton(12, IDC_CHECK4);
 }
 
 void CngsledsDlg::OnBnClickedCheck6()
 {
-	//buttons[5] = ((CButton*)GetDlgItem(IDC_CHECK1))->GetCheck();
-	btnTemp.set(Filekez::bitArrayExt[13]);
-	if (((CButton*)GetDlgItem(IDC_CHECK3))->GetCheck()) {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[13]], 0, btnTemp.to_ulong());
-	}
-	else {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[13]], btnTemp.to_ulong(), btnTemp.to_ulong());
-	}
-	btnTemp.reset(Filekez::bitArrayExt[13]);
+	HandleButton(13, IDC_CHECK3);
 }
 
 void CngsledsDlg::OnBnClickedCheck7()
 {
-	//buttons[6] = ((CButton*)GetDlgItem(IDC_CHECK1))->GetCheck();
-	btnTemp.set(Filekez::bitArrayExt[14]);
-	if (((CButton*)GetDlgItem(IDC_CHECK2))->GetCheck()) {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[14]], 0, btnTemp.to_ulong());
-	}
-	else {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[14]], btnTemp.to_ulong(), btnTemp.to_ulong());
-	}
-	btnTemp.reset(Filekez::bitArrayExt[14]);
+	HandleButton(14, IDC_CHECK2);
 }
 
 void CngsledsDlg::OnBnClickedCheck8()
 {
-	//buttons[7] = ((CButton*)GetDlgItem(IDC_CHECK1))->GetCheck();
-	btnTemp.set(Filekez::bitArrayExt[15]);
-	if (((CButton*)GetDlgItem(IDC_CHECK1))->GetCheck()) {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[15]], 0, btnTemp.to_ulong());
+	HandleButton(15, IDC_CHECK1);
+}
+
+void CngsledsDlg::HandleButton(int number,int btnID)
+{
+	btnTemp.set(Filekez::bitArrayExt[number]);
+	if (((CButton*)GetDlgItem(btnID))->GetCheck()) {
+		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[number]], 0, btnTemp.to_ulong());
 	}
 	else {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[15]], btnTemp.to_ulong(), btnTemp.to_ulong());
+		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[number]], btnTemp.to_ulong(), btnTemp.to_ulong());
 	}
-	btnTemp.reset(Filekez::bitArrayExt[15]);
+	btnTemp.reset(Filekez::bitArrayExt[number]);
 }

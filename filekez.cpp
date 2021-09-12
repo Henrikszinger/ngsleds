@@ -30,10 +30,10 @@ Filekez::Filekez()
 	
 	while (getline(fileread, line)) {		//read until the end of file
 
-		for (char x = 0; x < 16; x++) {		//az idfier változóban definiált neveket keresi, 16x megy végig lényegében a teljes fájlon
+		for (char x = 0; x < 16; x++) {		
 			if (line.find(idfier[x]) != std::string::npos) { //look for the control names
-				if ((found = line.find("=")) != std::string::npos && (line.length() >= found + 4)) { // innentõl talán érthetõ, keres egyenlõségjelet, utána megnézi van e "P" és a pont, helyes-e a megadás
-					try {		// az egész lényeges vizsgálati rész egy try catch-be van beletéve, ha netán valami hiba lenne a beolvasással
+				if ((found = line.find("=")) != std::string::npos && (line.length() >= found + 4)) { 
+					try {		
 						if ((line.at(found + 1) == 'P') &&
 							(line.at(found + 3) == '.'))
 						{

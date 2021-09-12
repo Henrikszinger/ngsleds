@@ -63,6 +63,7 @@ public:
 	bool doPrint = false;
 
 private:
+	void HandleButton(int number, int btnID);
 	virtual void DrawLed();
 	std::bitset<8> btnTemp = 0;
 	
