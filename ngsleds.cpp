@@ -6,6 +6,7 @@
 #include "ngsleds.h"
 #include "ngsledsDlg.h"
 #include "AGSI.h"
+#include "INIReader.h"
 #include <filesystem>		// filesystem namespace, requires C++17
 
 #ifdef _DEBUG
@@ -106,11 +107,62 @@ DWORD GetFunctionPointers(void) {           // get all function pointers
 
 // CngsledsApp construction
 
+int NGSWatchType = 0;
+int NGSWatchAddress = 0xC000;
+int LEDSWatchType = 0;
+int LEDSWatchAddress = 0xC001;
+
+std::array<uint16_t, 5> sfraddress = { 0x80, 0x90, 0xA0, 0xB0, 0xC0 };
+
 CngsledsApp::CngsledsApp()
 {
-	// TODO: add construction code here,
-	// Place all significant initialization in InitInstance
-	Filekez::Get();
+	INIReader reader("NGS_LEDS.ini");
+
+	if (reader.ParseError() < 0) {
+		MessageBox(nullptr, TEXT("NGS_LEDS.ini not found, using default config."), TEXT("Message"), MB_OK);
+	}
+
+	std::string addresstype = "";
+	int address = 0;
+
+	addresstype = reader.Get("NGS", "addresstype", "");
+	address = reader.GetInteger("NGS", "address", -1);
+	if (addresstype == "PORT") {
+		NGSWatchType = 1;
+		if (address != -1 && address >= 0 && address <= 4) {
+			NGSWatchAddress = address;
+		}
+		else {
+			NGSWatchType = 0;
+			NGSWatchAddress = 0xC000;
+		}
+	}
+	else {
+		NGSWatchType = 0;
+		if (address != -1) {
+			NGSWatchAddress = address;
+		}
+	}
+
+	addresstype = reader.Get("LEDS", "addresstype", "");
+	address = reader.GetInteger("LEDS", "address", -1);
+	if (addresstype == "PORT") {
+		LEDSWatchType = 1;
+		if (address != -1 && address >= 0 && address <= 4) {
+			LEDSWatchAddress = address;
+		}
+		else {
+			LEDSWatchType = 0;
+			LEDSWatchAddress = 0xC001;
+		}
+	}
+	else {
+		LEDSWatchType = 0;
+		if (address != -1) {
+			LEDSWatchAddress = address;
+		}
+	}
+
 }
 
 
@@ -202,19 +254,13 @@ DWORD DefineAllWatches(void) {      // define all Watches
 	BOOL ret = TRUE;
 
 	//ret &= Agsi.SetWatchOnSFR(P1, OnChange, AGSIWRITE);
-	//ret &= Agsi.SetWatchOnSFR(P4, OnChange, AGSIWRITE);
 
-	for (char x = 0; x < 8; x++){  // set watch on ports only for the leds.  buttons dont need watch -- x is not 0-15
-		ret &= Agsi.SetWatchOnSFR(Filekez::sfraddress[Filekez::portArrayExt[x]], OnChange, AGSIREADWRITE);
-	}
+	// ## unnecessary, for later use
+	//if (!NGSWatchType) ret &= Agsi.SetWatchOnMemory(NGSWatchAddress, NGSWatchAddress+1, NGSWatchCB, AGSIWRITE);
+	//else ret &= Agsi.SetWatchOnSFR(sfraddress[NGSWatchAddress], NGSWatchCB, AGSIWRITE);
 
-	/*
-	for (char x = 0; x <= 4; x++) {
-		if (Filekez::portExt[x] != 0) {
-			ret &= Agsi.SetWatchOnSFR(Filekez::sfraddress[x], OnChange, AGSIWRITE);
-		}
-	}
-	*/
+	if (!LEDSWatchType) ret &= Agsi.SetWatchOnMemory(LEDSWatchAddress, LEDSWatchAddress + 1, LEDSWatchCB, AGSIWRITE);
+	else ret &= Agsi.SetWatchOnSFR(sfraddress[LEDSWatchAddress], LEDSWatchCB, AGSIWRITE);
 
 	return(ret);
 }
@@ -276,9 +322,14 @@ extern "C" DWORD AGSIEXPORT AgsiEntry(DWORD nCode, void *vp) {
 	return(TRUE);       // return OK
 }
 
-void OnChange() // ezt hívja meg az AGSI watch, fontos hogy megvizsgáljuk hogy a pCPeriDialog ami lényegében maga a dialog ablak handlere, hogy létezik-e a dialog, ha nem, és meghívódik, crashel a Keil
-{
+void NGSWatchCB() {
 	if (pCPeriDialog != NULL) {
-		pCPeriDialog->WatchSFR();	//nem tudom ez így mennyire szép megoldás, vagy mennyire C++ vagy programozás hû úgy általánosságban, a Cngsledapp classban is lehet meg lehet írni a programot, talán úgy is lenne a helyes
+		pCPeriDialog->WatchSFR();
+	}
+}
+
+void LEDSWatchCB() {
+	if (pCPeriDialog != NULL) {
+		pCPeriDialog->WatchSFR();
 	}
 }

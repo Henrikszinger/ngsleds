@@ -7,7 +7,7 @@
 #include "Led.h"
 #include "AGSI.h"
 #include <chrono>
-#include "filekez.h"
+#include <bitset>
 
 // CngsledsDlg dialog
 class CngsledsDlg : public CDialog
@@ -54,9 +54,8 @@ public:
 	afx_msg void OnBnClickedCheck6();
 	afx_msg void OnBnClickedCheck7();
 	afx_msg void OnBnClickedCheck8();
-	std::array<int, 5> PortMask;
-	std::array<std::bitset<8>, 5> currPort = {};
-	std::array<std::bitset<8>, 5> lastPort = {};
+	std::bitset<8> currRead = 0xFF;
+	std::bitset<8> lastRead = 0xFF;
 	std::chrono::time_point<std::chrono::steady_clock> timeStart;
 	bool storeLed[8] = { 0 };
 	bool endTimerReset = false;

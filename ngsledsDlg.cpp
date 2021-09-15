@@ -130,7 +130,7 @@ BOOL CngsledsDlg::OnInitDialog()
 			SWP_NOSIZE | SWP_NOZORDER);  /* flags */
 	}
 
-	CRect rect;			//hasonlóan a Ledmátrixhoz, itt lesz létrehozva a "ledsor", meg vannak adva alap "koordináták" egy rect típusnak, a ".Create" pedig létrehozza hozzá a controlt
+	CRect rect;			
 	int i = 0;
 	while (i < 8) {
 		rect.left = 12 + (i * 26);
@@ -141,23 +141,8 @@ BOOL CngsledsDlg::OnInitDialog()
 		i++;
 	}
 
-	// create masks for reading
-	for (char x = 0; x <= 4; x++) {
-		if (Filekez::portExt[x] != 0) {  // megnézi hogy adott "bájt" nullától eltérõ, ha igen a 8 elemû bit arraybõl készít egy maszkot
-			PortMask[x] = Filekez::portExt[x].to_ulong();
-		}
-	}
-
-	// if bits are 1 on startup, do an initial draw
-	for (char x = 0; x <= 4; x++) {
-		DWORD currPortTemp, lastPortTemp;
-		if (Filekez::portExt[x] != 0) {
-			Agsi.ReadSFR(Filekez::sfraddress[x], &currPortTemp, &lastPortTemp, PortMask[x]);
-			currPort[x] = currPortTemp;
-			lastPort[x] = lastPortTemp;
-		}
-		DrawLed();
-	}
+	// do an initial draw
+	WatchSFR();
 
 	 //timeStart = std::chrono::steady_clock::now();
 	 timeStart = std::chrono::high_resolution_clock::now();
@@ -193,26 +178,32 @@ void CngsledsDlg::OnClose()
 
 void CngsledsDlg::WatchSFR()		
 {
-	
-	for (char x = 0; x <= 4; x++) {		
-		DWORD currPortTemp, lastPortTemp;
-		if (Filekez::portExt[x] != 0) {
-			Agsi.ReadSFR(Filekez::sfraddress[x], &currPortTemp, &lastPortTemp, PortMask[x]);  
-			currPort[x] = currPortTemp;		
-			lastPort[x] = lastPortTemp;
+	DWORD tempCurrent, tempLast;
+
+	if (LEDSWatchType) {
+		Agsi.ReadSFR(sfraddress[LEDSWatchAddress],&tempCurrent,&tempLast,0xFF);
+
+		if (tempCurrent != tempLast) {
+			currRead = tempCurrent;
+			lastRead = tempLast;
+
+			for (char n = 0; n < 8; n++) {
+				storeLed[n] |= currRead[n];
+			}
+			DrawLed();
 		}
 	}
 
-	if (currPort != lastPort) {		
-		for (char n = 0; n < 8; n++) {		
-			if (currPort[Filekez::portArrayExt[n]][Filekez::bitArrayExt[n]] /*&& !lastPort[Filekez::portArrayExt[n]][Filekez::bitArrayExt[n]]*/) {
-				storeLed[n] = 1;
-			}
-			else {
-				storeLed[n] = 0;
-			}
+	else {
+		BYTE justonebyte = 0xFF;
+		Agsi.ReadMemory(LEDSWatchAddress, 1, &justonebyte);
+		currRead = ~justonebyte;
+
+		for (char n = 0; n < 8; n++) {
+			storeLed[n] |= currRead[n];
 		}
-			DrawLed();
+		DrawLed();
+
 	}
 }
 
@@ -227,13 +218,14 @@ void CngsledsDlg::DrawLed()
 	if (duration >= 17) { 
 		timeStart = now;	
 		for (char n = 0; n < 8; n++) {	
-			if (storeLed[n]) {
+			if (!storeLed[n]) {
 				Ledsor[n].SetLed(CLed::LED_OFF);		
 			}
 			else {
 				Ledsor[n].SetLed(CLed::LED_ON);
 				//Ledsor[n].OffDelay(10);
 			}
+			storeLed[n] = 0;
 		}
 	}
 	else {		
@@ -245,19 +237,6 @@ void CngsledsDlg::DrawLed()
 		SetTimer(2, 50, NULL);
 	}
 
-	/*
-	for (char n = 0; n < 8; n++) {
-		if (storeLed[n]) {
-			Ledsor[n].SetLed(!currPort[Filekez::portArrayExt[n]][Filekez::bitArrayExt[n]]);
-		}
-		else if (diff.count() > 0.010) {
-			timeStart = now;
-			if (!(Ledsor[n].GetLedMode())) {
-				Ledsor[n].OffDelay(5);
-			}
-		}
-	}
-	*/
 }
 
 void CngsledsDlg::OnTimer(UINT nIDEvent)		// ez hívódik meg 50ms után, ha nem történt DrawLed hívás
@@ -273,54 +252,69 @@ void CngsledsDlg::OnTimer(UINT nIDEvent)		// ez hívódik meg 50ms után, ha nem tö
 	//CStatic::OnTimer(nIDEvent);
 }
 
-void CngsledsDlg::OnBnClickedCheck1()		//a bit/portArrayExternal 8-15ig vannak a gombok "bitjei" eltárolva
+void CngsledsDlg::OnBnClickedCheck1()		
 {
-	HandleButton(8, IDC_CHECK8);
+	HandleButton(0, IDC_CHECK8);
 }
 
 void CngsledsDlg::OnBnClickedCheck2()
 {
-	HandleButton(9, IDC_CHECK7);
+	HandleButton(1, IDC_CHECK7);
 }
 
 void CngsledsDlg::OnBnClickedCheck3()
 {
-	HandleButton(10, IDC_CHECK6);
+	HandleButton(2, IDC_CHECK6);
 }
 
 void CngsledsDlg::OnBnClickedCheck4()
 {
-	HandleButton(11, IDC_CHECK5);
+	HandleButton(3, IDC_CHECK5);
 }
 
 void CngsledsDlg::OnBnClickedCheck5()
 {
-	HandleButton(12, IDC_CHECK4);
+	HandleButton(4, IDC_CHECK4);
 }
 
 void CngsledsDlg::OnBnClickedCheck6()
 {
-	HandleButton(13, IDC_CHECK3);
+	HandleButton(5, IDC_CHECK3);
 }
 
 void CngsledsDlg::OnBnClickedCheck7()
 {
-	HandleButton(14, IDC_CHECK2);
+	HandleButton(6, IDC_CHECK2);
 }
 
 void CngsledsDlg::OnBnClickedCheck8()
 {
-	HandleButton(15, IDC_CHECK1);
+	HandleButton(7, IDC_CHECK1);
 }
 
 void CngsledsDlg::HandleButton(int number,int btnID)
 {
-	btnTemp.set(Filekez::bitArrayExt[number]);
-	if (((CButton*)GetDlgItem(btnID))->GetCheck()) {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[number]], 0, btnTemp.to_ulong());
+	if (NGSWatchType) {
+
+		if (((CButton*)GetDlgItem(btnID))->GetCheck()) {
+			Agsi.WriteSFR(sfraddress[NGSWatchAddress], 0x00, (0x01 << number));
+		}
+		else {
+			Agsi.WriteSFR(sfraddress[NGSWatchAddress], 0xFF, (0x01 << number));
+		}
 	}
+
 	else {
-		Agsi.WriteSFR(Filekez::sfraddress[Filekez::portArrayExt[number]], btnTemp.to_ulong(), btnTemp.to_ulong());
+		BYTE justonebyte = 0xFF;
+		Agsi.ReadMemory(NGSWatchAddress, 1, &justonebyte);
+		
+		if (((CButton*)GetDlgItem(btnID))->GetCheck()) {
+			justonebyte &= ~(0x01 << number);
+			Agsi.WriteMemory(NGSWatchAddress, 1, &justonebyte);
+		}
+		else {
+			justonebyte |= (0x01 << number);
+			Agsi.WriteMemory(NGSWatchAddress, 1, &justonebyte);
+		}
 	}
-	btnTemp.reset(Filekez::bitArrayExt[number]);
 }

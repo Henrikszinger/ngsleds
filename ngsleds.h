@@ -10,6 +10,7 @@
 #include "resource.h"		// main symbols
 #include "AGSI.h"
 #include "ngsledsDlg.h"
+#include <array>
 
 
 // CngsledsApp:
@@ -24,8 +25,6 @@ public:
 // Overrides
 public:
 	virtual BOOL InitInstance();
-
-	static std::filesystem::path FilekezFilepath; // namespace, requires C++17
 
 	DECLARE_MESSAGE_MAP()
 };
@@ -117,21 +116,6 @@ union fv {      // float value union
 	DWORD DW;
 };
 
-// SFR's
-/*
-#define IE       0xA8
-#define IP       0xB8
-#define IPH      0xB7
-#define ADCCON1  0xEF
-#define ADCCON2  0xD8
-#define ADCCON3  0xF5
-#define DMAL     0xD2
-#define DMAH     0xD3
-#define DMAP     0xD4
-#define ADCDATAL 0xD9
-#define ADCDATAH 0xDA
-*/
-
 //define P0		0x80
 //define P1		0x90
 //define P2		0xA0
@@ -139,11 +123,16 @@ union fv {      // float value union
 //define P4		0xC0
 //define P5		0xC4
 
-//define CLK	P1^0
-//define STROBE	P1^1
-//define DATA	P1^2
+extern int NGSWatchType;
+extern int NGSWatchAddress;
+extern int LEDSWatchType;
+extern int LEDSWatchAddress;
 
-void OnChange();
+extern std::array<uint16_t, 5> sfraddress;
+
+void NGSWatchCB();
+void LEDSWatchCB();
+
 
 struct vtrlist {
 	char     *pName;       // name of VTREG

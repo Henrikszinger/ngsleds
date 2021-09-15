@@ -100,6 +100,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -151,6 +152,7 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -197,8 +199,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AGSI.h" />
-    <ClInclude Include="filekez.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="INIReader.h" />
     <ClInclude Include="Led.h" />
     <ClInclude Include="ngsleds.h" />
     <ClInclude Include="ngsledsDlg.h" />
@@ -207,7 +209,6 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="filekez.cpp" />
     <ClCompile Include="Led.cpp" />
     <ClCompile Include="ngsleds.cpp" />
     <ClCompile Include="ngsledsDlg.cpp" />
